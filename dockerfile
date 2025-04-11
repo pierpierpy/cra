@@ -10,7 +10,7 @@ COPY gbb.jpg .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the bot code
-COPY . .
+COPY main.py .
 
 # Run the bot
 CMD ["python", "main.py"]

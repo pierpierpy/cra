@@ -37,10 +37,10 @@ async def echo_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         case "quack":
             await update.message.reply_text("quack")
         case "gabbibbo":
-            image_url = "https://upload.wikimedia.org/wikipedia/it/d/da/Gabibbo.png"
-            await update.message.reply_photo(photo=image_url)
+            with open("gbb.jpg", "rb") as photo:
+                await update.message.reply_photo(photo=photo)
         case _:
-            await update.message.reply_text("Unknown command.")
+            pass
 
 
 def main():

@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "."
-          target: "~/telegram-bot"
+          target: "~/cra"
 
       - name: SSH into server and deploy
         uses: appleboy/ssh-action@v1.2.2

@@ -7,7 +7,6 @@ from datetime import datetime
 
 load_dotenv()
 
-# PostgreSQL connection setup
 conn = psycopg2.connect(
     dbname=os.getenv("DB_NAME"),
     user=os.getenv("DB_USER"),
@@ -31,7 +30,6 @@ async def echo_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_id = update.message.from_user.id
     username = update.message.from_user.username or "Unknown"
 
-    # Log the message
     log_message_to_db(user_id, username, user_message)
 
     match user_message:

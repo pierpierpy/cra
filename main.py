@@ -29,16 +29,18 @@ async def echo_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_message = update.message.text.lower()
     user_id = update.message.from_user.id
     username = update.message.from_user.username or "Unknown"
-
     log_message_to_db(user_id, username, user_message)
 
     match user_message:
         case "cra":
             await update.message.reply_text("cra")
         case "quack":
-            await update.message.reply_text("miao")
+            await update.message.reply_text("quack")
+        case "gabbibbo":
+            image_url = "https://upload.wikimedia.org/wikipedia/it/d/da/Gabibbo.png"
+            await update.message.reply_photo(photo=image_url)
         case _:
-            pass
+            await update.message.reply_text("Unknown command.")
 
 
 def main():

@@ -21,7 +21,7 @@ def log_message_to_db(user_id, username, message):
     with conn.cursor() as cur:
         cur.execute(
             "INSERT INTO telegram_messages (user_id, username, message, timestamp) VALUES (%s, %s, %s, %s)",
-            (user_id, username, message, datetime.utcnow()),
+            (user_id, username, message, datetime.now()),
         )
 
 

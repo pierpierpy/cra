@@ -28,7 +28,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/telegram-bot
+            cd ~/cra
             docker compose down
             docker compose build
             docker compose up -d

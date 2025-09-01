@@ -75,8 +75,13 @@ async def llm_chat(session: aiohttp.ClientSession, user_text: str) -> Optional[s
         "temperature": 0.7,
         "stream": False,
     }
+
     try:
-        async with session.post(url, json=payload, timeout=LLM_TIMEOUT) as resp:
+        auth = None
+        if os.getenv("LLM_USER") and os.getenv("LLM_PASS"):
+            auth = aiohttp.BasicAuth(os.getenv("LLM_USER"), os.getenv("LLM_PASS"))
+
+        async with session.post(url, json=payload, timeout=LLM_TIMEOUT, auth=auth) as resp:
             if resp.status != 200:
                 text = await resp.text()
                 log.warning("LLM HTTP %s: %s", resp.status, text[:500])
@@ -89,13 +94,13 @@ async def llm_chat(session: aiohttp.ClientSession, user_text: str) -> Optional[s
         log.exception("LLM request error: %s", e)
         return None
 
-    # Expected schema from llama.cpp (OpenAI-compatible)
     try:
         content = data["choices"][0]["message"]["content"]
         return content.strip()
     except Exception as e:
         log.exception("LLM parse error: %s; data=%s", e, str(data)[:500])
         return None
+
 
 
 # ----------------------------

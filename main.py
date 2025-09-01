@@ -22,9 +22,8 @@ import aiohttp
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TOKEN") or os.getenv("token")  # accept either
-LLM_BASE_URL = os.getenv(
-    "LLM_BASE_URL", "https://728b4ad57c33.ngrok-free.app"
-)  # your ngrok URL
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", ".")  # your ngrok URL
+
 LLM_MODEL = os.getenv("LLM_MODEL", "local")  # llama.cpp server expects "local"
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "30"))  # seconds
 

@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "."
-          target: "~/cra"
+          target: "~/telegrambot"
 
       - name: SSH into server and deploy
         uses: appleboy/ssh-action@v1.2.2
@@ -30,7 +30,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/cra
+            cd ~/telegrambot
             docker compose down
             docker compose build
             docker compose up -d

@@ -1,6 +1,5 @@
 # cra
-un bot che fa cra o quack a piacimento
-
+un bot che fa cra o quack a piacimento 
 # testing with Python (NOT RECOMENDED)
 
 python versione 3.12 (>3.10) richiesto

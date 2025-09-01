@@ -1,5 +1,5 @@
 # cra
-un bot che fa cra o quack a piacimento
+my personal ai bot on telegram
 
 # testing with Python (NOT RECOMENDED)
 

@@ -1,18 +1,18 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  telegram-bot:
+  bot-service:
     build: .
     env_file:
       - .env
-    container_name: telegram-cra-bot
+    container_name: bot-service
     depends_on:
-      - postgres-db
+      - db-service
     restart: unless-stopped
 
-  postgres-db:
+  db-service:
     image: postgres:15
-    container_name: telegram-postgres
+    container_name: db-service
     environment:
       POSTGRES_DB: telegramdb
       POSTGRES_USER: telegramuser

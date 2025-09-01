@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional, Dict, List
 
 from dotenv import load_dotenv
 from telegram import Update
@@ -58,19 +58,71 @@ def log_message_to_db(user_id: int, username: str, message: str) -> None:
 
 
 # ----------------------------
+# In-memory chat history
+# Keep last 2 pairs (user/assistant) per user.
+# ----------------------------
+# { user_id: [ {"role":"user","content":"..."}, {"role":"assistant","content":"..."} , ... ] }
+HISTORY: Dict[int, List[dict]] = {}
+HISTORY_MAX_MSGS = 4  # 2 pairs = 4 messages
+
+
+def get_history(user_id: int) -> List[dict]:
+    return HISTORY.get(user_id, [])
+
+
+def push_history(user_id: int, role: str, content: str) -> None:
+    arr = HISTORY.get(user_id, [])
+    arr.append({"role": role, "content": content})
+    if len(arr) > HISTORY_MAX_MSGS:
+        arr = arr[-HISTORY_MAX_MSGS:]
+    HISTORY[user_id] = arr
+
+
+def format_history_as_system(user_id: int) -> Optional[dict]:
+    """Return one system message that clearly marks the last messages as history."""
+    hist = get_history(user_id)
+    if not hist:
+        return None
+    lines = [
+        "The following items are previous chat history. Do not answer them directly; use them only as context:"
+    ]
+    for m in hist:
+        r = m.get("role", "user")
+        c = (m.get("content") or "").strip()
+        # keep it short-ish
+        if len(c) > 600:
+            c = c[:600] + " ..."
+        lines.append(f"[history][{r}] {c}")
+    return {"role": "system", "content": "\n".join(lines)}
+
+
+# ----------------------------
 # LLM client (async, uses aiohttp)
 # ----------------------------
-async def llm_chat(session: aiohttp.ClientSession, user_text: str) -> Optional[str]:
+async def llm_chat(
+    session: aiohttp.ClientSession, user_text: str, user_id: int
+) -> Optional[str]:
     """
     Calls llama.cpp OpenAI-style /v1/chat/completions and returns the assistant content.
+    Sends last 2 pairs of history as an explicit system-marked block.
     """
     url = f"{LLM_BASE_URL.rstrip('/')}/v1/chat/completions"
+
+    messages: List[dict] = [
+        {
+            "role": "system",
+            "content": "You are a concise, helpful assistant. Use provided history only as context when relevant.",
+        }
+    ]
+    hist_block = format_history_as_system(user_id)
+    if hist_block:
+        messages.append(hist_block)
+
+    messages.append({"role": "user", "content": user_text})
+    log.info(messages)
     payload = {
         "model": LLM_MODEL,
-        "messages": [
-            {"role": "system", "content": "You are a concise, helpful assistant."},
-            {"role": "user", "content": user_text},
-        ],
+        "messages": messages,
         "max_tokens": 256,
         "temperature": 0.7,
         "stream": False,
@@ -81,7 +133,9 @@ async def llm_chat(session: aiohttp.ClientSession, user_text: str) -> Optional[s
         if os.getenv("LLM_USER") and os.getenv("LLM_PASS"):
             auth = aiohttp.BasicAuth(os.getenv("LLM_USER"), os.getenv("LLM_PASS"))
 
-        async with session.post(url, json=payload, timeout=LLM_TIMEOUT, auth=auth) as resp:
+        async with session.post(
+            url, json=payload, timeout=LLM_TIMEOUT, auth=auth
+        ) as resp:
             if resp.status != 200:
                 text = await resp.text()
                 log.warning("LLM HTTP %s: %s", resp.status, text[:500])
@@ -95,12 +149,11 @@ async def llm_chat(session: aiohttp.ClientSession, user_text: str) -> Optional[s
         return None
 
     try:
-        content = data["choices"][0]["message"]["content"]
-        return content.strip()
+        content = data["choices"][0]["message"]["content"].strip()
+        return content
     except Exception as e:
         log.exception("LLM parse error: %s; data=%s", e, str(data)[:500])
         return None
-
 
 
 # ----------------------------
@@ -136,13 +189,26 @@ async def echo_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await update.message.reply_text("Missing gbb.jpg on server.")
         return
 
-    # default: call LLM
+    # default: call LLM with tiny history
     session: aiohttp.ClientSession = context.bot_data["http_session"]
-    reply = await llm_chat(session, user_message_raw)
+    # add the user's message to history first
+    push_history(user_id, "user", user_message_raw)
+
+    reply = await llm_chat(session, user_message_raw, user_id)
 
     if reply:
+        # save assistant reply
+        push_history(user_id, "assistant", reply)
         await update.message.reply_text(reply)
     else:
+        # rollback the last user message if call failed
+        hist = get_history(user_id)
+        if (
+            hist
+            and hist[-1].get("role") == "user"
+            and hist[-1].get("content") == user_message_raw
+        ):
+            HISTORY[user_id] = hist[:-1]
         await update.message.reply_text("Sorry, I couldn't get a response right now.")
 
 
